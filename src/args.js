@@ -6,6 +6,9 @@ const VALUE_OPTIONS = new Set([
   "month",
   "id",
   "set",
+  "format",
+  "out",
+  "file",
 ]);
 const COMMAND_OPTIONS = {
   add: new Set(["amount", "category", "note", "date"]),
@@ -14,8 +17,11 @@ const COMMAND_OPTIONS = {
   edit: new Set(["id", "amount", "category", "note", "date"]),
   summary: new Set(["month"]),
   budget: new Set(["set"]),
+  export: new Set(["format", "out"]),
+  import: new Set(["file"]),
   help: new Set(),
 };
+const GLOBAL_FLAGS = new Set(["no-color"]);
 
 export function parseArgs(argv) {
   const [command = "help", ...args] = argv;
@@ -33,6 +39,17 @@ export function parseArgs(argv) {
 
     const equalsIndex = argument.indexOf("=");
     const rawName = argument.slice(2, equalsIndex === -1 ? undefined : equalsIndex);
+    if (GLOBAL_FLAGS.has(rawName)) {
+      if (equalsIndex !== -1) {
+        throw new Error(`Flag --${rawName} does not take a value`);
+      }
+      if (Object.hasOwn(options, "noColor")) {
+        throw new Error("Flag --no-color was provided more than once");
+      }
+      options.noColor = true;
+      continue;
+    }
+
     if (!VALUE_OPTIONS.has(rawName)) {
       throw new Error(`Unknown option: --${rawName}`);
     }

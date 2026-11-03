@@ -2,5 +2,11 @@
   "name": "node-expense-tracker",
   "version": "1.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "bin": {
+    "expense": "./bin/expense.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
 }
