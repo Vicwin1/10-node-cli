@@ -26,12 +26,12 @@ export function addExpense(list, input) {
     throw new Error("Date must be a valid date in YYYY-MM-DD format");
   }
 
-  const nextId = list.reduce(
-    (maximum, expense) => Math.max(maximum, Number(expense.id) || 0),
-    0,
-  ) + 1;
+  const id = String(input.id ?? "");
+  if (!id) {
+    throw new Error("Expense ID is required");
+  }
   const expense = {
-    id: nextId,
+    id,
     amount,
     category,
     note: String(input.note ?? "").trim(),
@@ -39,6 +39,65 @@ export function addExpense(list, input) {
   };
 
   return [...list, expense];
+}
+
+function findExpenseIndex(list, id) {
+  if (typeof id !== "string" || !id.trim()) {
+    throw new Error("Expense ID is required");
+  }
+
+  const matches = list
+    .map((expense, index) => ({ expense, index }))
+    .filter(({ expense }) => String(expense.id).startsWith(id.trim()));
+
+  if (matches.length === 0) {
+    throw new Error(`No expense found for ID: ${id}`);
+  }
+  if (matches.length > 1) {
+    throw new Error(`ID prefix is ambiguous: ${id}`);
+  }
+  return matches[0].index;
+}
+
+export function deleteExpense(list, id) {
+  if (!Array.isArray(list)) {
+    throw new TypeError("Expense list must be an array");
+  }
+  const index = findExpenseIndex(list, id);
+  return list.filter((_, itemIndex) => itemIndex !== index);
+}
+
+export function editExpense(list, id, updates) {
+  if (!Array.isArray(list)) {
+    throw new TypeError("Expense list must be an array");
+  }
+  const allowedFields = new Set(["amount", "category", "note", "date"]);
+  const updateKeys = Object.keys(updates);
+  if (updateKeys.length === 0) {
+    throw new Error("Provide at least one field to update");
+  }
+  for (const key of updateKeys) {
+    if (!allowedFields.has(key)) {
+      throw new Error(`Cannot update field: ${key}`);
+    }
+  }
+
+  const index = findExpenseIndex(list, id);
+  const existing = list[index];
+  const merged = { ...existing, ...updates, id: existing.id };
+  const validated = addExpense([], {
+    ...merged,
+    id: existing.id,
+  })[0];
+  return list.map((expense, itemIndex) => (itemIndex === index ? validated : expense));
+}
+
+export function setBudget(settings, value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Budget must be a positive number");
+  }
+  return { ...settings, monthlyBudget: amount };
 }
 
 export function listExpenses(list, filters = {}) {
